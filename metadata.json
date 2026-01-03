@@ -1,0 +1,5 @@
+{
+  "name": "TechPulse 科技门户 & 智能客服系统",
+  "description": "基于 Gemini 3 Flash 的实时科技新闻展示平台，集成 IP 溯源留言系统。",
+  "requestFramePermissions": []
+}
