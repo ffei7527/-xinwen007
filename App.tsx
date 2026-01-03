@@ -1,9 +1,8 @@
 import React, { useState, useEffect } from 'react';
 import { GoogleGenAI, Type } from "@google/genai";
 
-// 这种写法可以绕过 Railway 的某些敏感字符扫描
-const API_KEY_VAL = (typeof process !== 'undefined' && process.env) ? process.env.API_KEY : '';
-const ai = new GoogleGenAI({ apiKey: API_KEY_VAL || 'NO_KEY' });
+// 严格按照规范初始化
+const ai = new GoogleGenAI({ apiKey: (typeof process !== 'undefined' && process.env.API_KEY) ? process.env.API_KEY : '' });
 
 interface NewsItem {
   title: string;
@@ -22,15 +21,11 @@ const App: React.FC = () => {
   const [status, setStatus] = useState<'idle' | 'sending' | 'success' | 'error'>('idle');
 
   const fetchTechNews = async () => {
-    if (!API_KEY_VAL) {
-      setLoadingNews(false);
-      return;
-    }
     setLoadingNews(true);
     try {
       const response = await ai.models.generateContent({
         model: "gemini-3-flash-preview",
-        contents: "请提供近期5条重要的全球科技动态。格式必须是JSON数组，包含属性：title, summary, category, date, url。",
+        contents: "提供5条今日最新的全球科技新闻头条。返回格式为包含 title, summary, category, date, url 的 JSON 数组。",
         config: {
           responseMimeType: "application/json",
           responseSchema: {
@@ -53,10 +48,8 @@ const App: React.FC = () => {
       const data = JSON.parse(response.text || '[]');
       setNews(data);
     } catch (error) {
-      console.error("无法获取新闻:", error);
-      setNews([
-        { title: "欢迎访问 TechPulse", summary: "当前处于离线模式或 API Key 未配置，此处显示示例新闻。", category: "提示", date: "2024-01-01", url: "#" }
-      ]);
+      console.error("News Load Error:", error);
+      setNews([{ title: "欢迎访问 TechPulse", summary: "当前处于离线状态，新闻加载暂不可用。", category: "系统提示", date: "2024", url: "#" }]);
     } finally {
       setLoadingNews(false);
     }
@@ -71,6 +64,7 @@ const App: React.FC = () => {
     if (!name || !content) return;
     setStatus('sending');
     try {
+      // 发送到 Flask 的 API 接口
       const response = await fetch('/api/message', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
@@ -94,28 +88,32 @@ const App: React.FC = () => {
             <span className="text-xl font-black tracking-tighter uppercase italic">TechPulse</span>
           </div>
           <button onClick={() => setIsOpen(true)} className="bg-blue-600 hover:bg-blue-700 px-4 py-1.5 rounded-full text-sm font-bold transition-all">
-            联系我们
+            快速咨询
           </button>
         </div>
       </nav>
 
       <main className="max-w-7xl mx-auto px-4 py-10">
         <header className="mb-12 border-l-4 border-blue-600 pl-4">
-          <h2 className="text-3xl font-extrabold text-slate-900">最新科技动态</h2>
-          <p className="text-slate-500">由 AI 实时驱动的新闻情报系统</p>
+          <h2 className="text-3xl font-extrabold text-slate-900">AI 精选科技快讯</h2>
+          <p className="text-slate-500">实时捕捉全球科技趋势</p>
         </header>
 
         {loadingNews ? (
-          <div className="text-center py-20 text-gray-400">正在通过 AI 引擎加载今日头条...</div>
+          <div className="flex justify-center items-center py-20">
+            <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600"></div>
+          </div>
         ) : (
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
             {news.map((item, idx) => (
               <article key={idx} className="bg-white rounded-2xl shadow-sm border border-gray-100 overflow-hidden hover:shadow-md transition-all">
                 <div className="p-6">
-                  <span className="inline-block px-3 py-1 rounded-full bg-blue-50 text-blue-600 text-xs font-bold mb-4">{item.category}</span>
-                  <h3 className="text-xl font-bold mb-3">{item.title}</h3>
-                  <p className="text-gray-600 text-sm mb-6">{item.summary}</p>
-                  <div className="text-xs text-gray-400">{item.date}</div>
+                  <span className="inline-block px-3 py-1 rounded-full bg-blue-50 text-blue-600 text-xs font-bold mb-4 uppercase tracking-wider">{item.category}</span>
+                  <h3 className="text-xl font-bold mb-3 leading-tight">{item.title}</h3>
+                  <p className="text-gray-600 text-sm mb-6 line-clamp-3">{item.summary}</p>
+                  <div className="flex justify-between items-center text-xs text-gray-400">
+                    <span>{item.date}</span>
+                  </div>
                 </div>
               </article>
             ))}
@@ -127,25 +125,38 @@ const App: React.FC = () => {
         {isOpen && (
           <div className="bg-white w-80 md:w-96 rounded-2xl shadow-2xl border border-gray-100 mb-4 overflow-hidden animate-slide-up">
             <div className="bg-slate-900 p-4 text-white flex justify-between items-center">
-              <h2 className="font-bold">留言板 (IP 自动记录中)</h2>
-              <button onClick={() => setIsOpen(false)}><i className="fas fa-times"></i></button>
+              <div>
+                <h2 className="font-bold">在线咨询</h2>
+                <p className="text-[10px] text-gray-400">您的访客信息将被自动记录</p>
+              </div>
+              <button onClick={() => setIsOpen(false)} className="hover:text-blue-400 transition-colors"><i className="fas fa-times"></i></button>
             </div>
             <div className="p-6">
               {status === 'success' ? (
-                <div className="text-center py-4 text-green-600 font-bold">✓ 发送成功！管理员将在后台查看</div>
+                <div className="text-center py-8 text-green-600 flex flex-col items-center">
+                  <i className="fas fa-check-circle text-4xl mb-3"></i>
+                  <p className="font-bold">发送成功！</p>
+                  <p className="text-xs text-gray-500 mt-1">管理员将在 24 小时内回复</p>
+                </div>
               ) : (
                 <form onSubmit={handleSubmit} className="space-y-4">
-                  <input type="text" required value={name} onChange={e => setName(e.target.value)} placeholder="您的称呼" className="w-full px-4 py-2 border rounded-lg" />
-                  <textarea required rows={4} value={content} onChange={e => setContent(e.target.value)} placeholder="有什么可以帮您？" className="w-full px-4 py-2 border rounded-lg resize-none"></textarea>
-                  <button type="submit" disabled={status === 'sending'} className="w-full py-3 bg-blue-600 text-white rounded-lg font-bold">
-                    {status === 'sending' ? '发送中...' : '提交'}
+                  <div>
+                    <label className="text-xs font-bold text-gray-500 mb-1 block">您的称呼</label>
+                    <input type="text" required value={name} onChange={e => setName(e.target.value)} placeholder="怎么称呼您？" className="w-full px-4 py-2 border rounded-lg focus:ring-2 focus:ring-blue-500 outline-none" />
+                  </div>
+                  <div>
+                    <label className="text-xs font-bold text-gray-500 mb-1 block">留言内容</label>
+                    <textarea required rows={4} value={content} onChange={e => setContent(e.target.value)} placeholder="请描述您的问题或需求..." className="w-full px-4 py-2 border rounded-lg resize-none focus:ring-2 focus:ring-blue-500 outline-none"></textarea>
+                  </div>
+                  <button type="submit" disabled={status === 'sending'} className="w-full py-3 bg-blue-600 hover:bg-blue-700 text-white rounded-lg font-bold transition-colors">
+                    {status === 'sending' ? '正在传送...' : '立即提交'}
                   </button>
                 </form>
               )}
             </div>
           </div>
         )}
-        <button onClick={() => setIsOpen(!isOpen)} className="w-14 h-14 rounded-full bg-blue-600 text-white shadow-xl flex items-center justify-center text-xl">
+        <button onClick={() => setIsOpen(!isOpen)} className="w-14 h-14 rounded-full bg-blue-600 text-white shadow-xl flex items-center justify-center text-xl hover:scale-105 transition-transform active:scale-95">
           <i className={isOpen ? 'fas fa-times' : 'fas fa-comment-dots'}></i>
         </button>
       </div>
