@@ -1,0 +1,39 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>客服管理后台</title>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/socket.io/4.0.1/socket.io.js"></script>
+    <style>
+        body { font-family: sans-serif; padding: 20px; background: #2c3e50; color: white; }
+        #chat { height: 400px; overflow-y: auto; background: #ecf0f1; color: #333; padding: 10px; border-radius: 5px; }
+        .msg { margin-bottom: 10px; border-bottom: 1px solid #ddd; padding-bottom: 5px; }
+        .ip-info { font-size: 12px; color: #7f8c8d; }
+        input { width: 80%; padding: 10px; }
+    </style>
+</head>
+<body>
+    <h1>客服实时对话后台</h1>
+    <div id="chat"></div>
+    <br>
+    <input type="text" id="reply" placeholder="输入回复内容...">
+    <button onclick="sendReply()">发送回复</button>
+
+    <script>
+        const socket = io();
+        socket.on('server_to_admin', (data) => {
+            const chat = document.getElementById('chat');
+            chat.innerHTML += `<div class="msg">
+                <b>${data.user}:</b> ${data.msg} <br>
+                <span class="ip-info">📍 IP: ${data.ip} | 位置: ${data.loc}</span>
+            </div>`;
+            chat.scrollTop = chat.scrollHeight;
+        });
+
+        function sendReply() {
+            const msg = document.getElementById('reply').value;
+            socket.emit('admin_reply', {msg: msg});
+            document.getElementById('reply').value = '';
+        }
+    </script>
+</body>
+</html>
