@@ -4,11 +4,13 @@ from flask_socketio import SocketIO, emit
 import requests
 
 app = Flask(__name__)
-app.config['SECRET_KEY'] = 'xinwen007-news-key'
+app.config['SECRET_KEY'] = 'xinwen007-special-key'
+# 增加 eventlet 异步模式支持
 socketio = SocketIO(app, cors_allowed_origins="*", async_mode='eventlet')
 
 def get_ip_info(ip):
     try:
+        # 增加超时限制，防止网页加载卡顿
         res = requests.get(f"http://ip-api.com/json/{ip}?lang=zh-CN", timeout=2)
         data = res.json()
         return f"{data.get('city', '未知')} ({data.get('isp', '')})"
@@ -17,7 +19,6 @@ def get_ip_info(ip):
 
 @app.route('/')
 def index():
-    # 静态网页逻辑，不再需要外部新闻API
     return render_template('index.html')
 
 @app.route('/admin')
@@ -29,7 +30,6 @@ def handle_client_msg(data):
     sid = request.sid
     ip = request.headers.get('X-Forwarded-For', request.remote_addr).split(',')[0].strip()
     location = get_ip_info(ip)
-    # 将读者的IP和位置发送到你的后台
     emit('server_to_admin', {
         'sid': sid,
         'user': data.get('name', '读者'),
