@@ -3,82 +3,120 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>【深度纪实】缅北果敢“四大家族”覆灭全记录</title>
+    <title>【重磅纪实】缅北果敢“四大家族”覆灭始末全记录</title>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/socket.io/4.0.1/socket.io.js"></script>
     <style>
-        :root { --main-red: #8b0000; --text-color: #2c3e50; }
-        body { margin: 0; padding: 0; background: #f4f4f4; font-family: "PingFang SC", "Hiragino Sans GB", sans-serif; }
+        :root { --blood-red: #8b0000; --text-main: #333; --bg-light: #f9f9f9; }
+        body { margin: 0; padding: 0; background-color: var(--bg-light); font-family: "Source Han Serif CN", serif; line-height: 1.8; }
 
-        /* 整个页面的容器 */
-        .page-wrapper { display: flex; width: 100%; }
+        /* 主体布局 */
+        .main-wrapper { width: 92%; margin: 0 auto; background: white; padding: 60px 10%; box-sizing: border-box; box-shadow: 0 0 20px rgba(0,0,0,0.05); }
 
-        /* 左侧新闻长文区：占据 15/16 宽度 */
-        .content-main { 
-            width: 93.75%; /* 15/16 */
-            background: white;
-            padding: 50px 80px;
-            box-sizing: border-box;
-            min-height: 200vh; /* 强制产生长滚动 */
-        }
+        /* 文章排版 */
+        h1 { font-size: 42px; color: var(--blood-red); text-align: center; margin-bottom: 10px; }
+        .subtitle { text-align: center; color: #666; margin-bottom: 50px; border-bottom: 1px solid #eee; padding-bottom: 20px; }
+        h2 { font-size: 28px; border-left: 8px solid var(--blood-red); padding-left: 20px; margin-top: 60px; color: #111; }
+        h3 { font-size: 22px; color: var(--blood-red); margin-top: 30px; }
+        p { font-size: 19px; margin-bottom: 25px; text-indent: 2em; text-align: justify; }
+        .highlight-box { background: #fff5f5; border: 1px solid #ffdada; padding: 25px; margin: 30px 0; border-radius: 4px; }
 
-        .article-header { border-bottom: 2px solid #ddd; padding-bottom: 30px; margin-bottom: 40px; text-align: center; }
-        .article-header h1 { font-size: 36px; color: var(--main-red); margin-bottom: 10px; }
-        .article-meta { color: #888; font-size: 14px; }
-
-        .section-box { margin-bottom: 50px; line-height: 1.8; font-size: 18px; color: var(--text-color); }
-        .section-box h2 { border-left: 6px solid var(--main-red); padding-left: 15px; color: #333; margin-top: 40px; }
-        .focus-box { background: #fff8f8; border: 1px dashed var(--main-red); padding: 20px; border-radius: 8px; margin: 20px 0; }
-        
-        /* 右侧悬浮客服窗：占据 1/16 宽度，固定位置 */
-        .chat-floating-window {
+        /* 稳定悬浮客服窗 (固定在右下角，确保可见) */
+        .chat-widget {
             position: fixed;
-            right: 10px;
-            top: 20px;
-            width: 5.5%; /* 约 1/16 */
-            min-width: 180px; /* 保护宽度，避免文字挤压 */
-            height: 90vh;
+            right: 20px;
+            bottom: 20px;
+            width: 280px; /* 约占屏幕 1/16 左右的宽度，保证可操作性 */
+            height: 400px;
             background: white;
             border-radius: 12px;
-            box-shadow: 0 10px 30px rgba(0,0,0,0.15);
+            box-shadow: 0 10px 40px rgba(0,0,0,0.2);
             display: flex;
             flex-direction: column;
             border: 1px solid #ddd;
-            z-index: 1000;
+            z-index: 9999;
         }
-
-        .chat-header { background: var(--main-red); color: white; padding: 15px; text-align: center; font-size: 14px; font-weight: bold; border-radius: 12px 12px 0 0; }
-        #chat-window { flex: 1; overflow-y: auto; padding: 10px; background: #fafafa; font-size: 12px; }
-        .input-area { padding: 10px; border-top: 1px solid #eee; background: white; border-radius: 0 0 12px 12px; }
-        input, textarea { width: 100%; border: 1px solid #ddd; border-radius: 4px; padding: 8px; margin-bottom: 5px; box-sizing: border-box; font-size: 12px; }
-        button { width: 100%; padding: 10px; background: var(--main-red); color: white; border: none; border-radius: 4px; cursor: pointer; font-weight: bold; }
-
-        .msg { margin-bottom: 12px; padding: 8px; border-radius: 6px; word-break: break-all; }
-        .admin-msg { background: #eee; color: #333; }
-        .user-msg { background: var(--main-red); color: white; text-align: right; }
-
-        /* 响应式：如果屏幕太小，悬浮窗隐藏 */
-        @media (max-width: 1000px) {
-            .chat-floating-window { display: none; }
-            .content-main { width: 100%; padding: 20px; }
-        }
+        .chat-header { background: var(--blood-red); color: white; padding: 12px; text-align: center; font-weight: bold; border-radius: 12px 12px 0 0; }
+        #chat-logs { flex: 1; overflow-y: auto; padding: 15px; font-size: 13px; background: #fdfdfd; }
+        .input-panel { padding: 12px; border-top: 1px solid #eee; }
+        input, textarea { width: 100%; border: 1px solid #ddd; border-radius: 4px; padding: 8px; margin-bottom: 5px; box-sizing: border-box; }
+        button { width: 100%; padding: 10px; background: var(--blood-red); color: white; border: none; border-radius: 4px; cursor: pointer; font-weight: bold; }
+        
+        /* 消息样式 */
+        .msg { margin-bottom: 10px; padding: 8px; border-radius: 6px; }
+        .admin { background: #eee; }
+        .user { background: var(--blood-red); color: white; text-align: right; }
     </style>
 </head>
 <body>
 
-<div class="page-wrapper">
-    <div class="content-main">
-        <div class="article-header">
-            <h1>正义之剑：缅北“四大家族”覆灭全纪实</h1>
-            <p class="article-meta">作者：国际时事观察员 | 发布时间：2026-01-04 | 关键词：跨境扫黑、电信诈骗、果敢</p>
-        </div>
+<div class="main-wrapper">
+    <h1>正义审判：缅北果敢“四大家族”覆灭始末</h1>
+    <div class="subtitle">深度调查报告 | 更新时间：2026-01-04</div>
 
-        <div class="section-box">
-            <h2>一、序言：果敢“土皇帝”时代的终结</h2>
-            <p>在绵延数十年的缅北动荡中，白所成、魏超仁、刘国玺、刘阿宝四大家族曾是果敢地区实际的“操盘手”。他们一手握枪，一手握钱，不仅控制着当地的经济命脉，更沦为全球电信诈骗产业链的保护伞。</p>
-        </div>
+    <section>
+        <h2>第一章：果敢旧势力的滋生</h2>
+        <p>缅北果敢，这一块位于中缅边境的特殊地带，历史上长期处于军事割据状态。随着2009年“八八事件”的爆发，原有的权力结构被打破，以白所成、魏超仁、刘国玺、刘阿宝为首的“四大家族”趁势崛起，开启了长达十四年的“土皇帝”统治。</p>
+        <p>这四大势力分别控制着果敢的行政、军事、经济和矿产命脉。然而，随着全球数字经济的发展，他们发现了一种比赌博、贩毒更“暴利”且成本更低的犯罪手段——电信诈骗。</p>
+    </section>
 
-        <div class="section-box">
-            <h2>二、白氏家族：从“果敢王”部下到覆灭</h2>
-            <p>白所成作为四大家族之首，曾是彭家声的部下。2009年“八八事件”后，白家上位，开启了长达十余年的黑暗统治。其子白应苍控制的“苍胜科技园”是臭名昭著的电诈窝点。</p>
-            <div class="focus-box">
-                <strong>关键节点：</strong> 2024年初，白所成、
+    <section>
+        <h2>第二章：白家——双面首富的坠落</h2>
+        <p>白所成曾是彭家声的副手，上位后自诩为果敢的“和平创建者”。其子白应苍更是在当地不可一世，不仅担任民兵大队大队长，更一手创建了苍胜科技园。该园区表面上是科技孵化器，实则是非法禁锢、殴打和勒索中国公民的魔窟。</p>
+        <div class="highlight-box">
+            <strong>【覆灭时刻】</strong> 2024年1月，中缅联合执法行动进入白热化。白所成及其家族核心成员在试图潜逃时被悉数抓获。当这名昔日“果敢首富”戴着手铐走下舷梯时，宣告了一个时代的终结。
+        </div>
+    </section>
+
+    <section>
+        <h2>第三章：魏家与明家——亨利集团与卧虎山庄</h2>
+        <p>魏超仁家族的亨利集团，曾通过短视频平台包装出大量“文艺网红”，吸引怀揣淘金梦的年轻人。其背后的血腥程度令人发指：水牢、电击、转卖，每一个台币背后可能都沾染着受害者的血泪。</p>
+        <p>而明学昌家族（虽不属传统四大家族，但后期势力极大）控制的“卧虎山庄”，则是制造了震惊中外的重大案件。明学昌最终在走投无路之下自杀身亡，其子女被移交中方。正义或许会迟到，但绝不会缺席。</p>
+    </div>
+
+    <section>
+        <h2>第四章：刘家——从黑色金库到灰飞烟灭</h2>
+        <p>刘国玺负责矿产，掌握着果敢的地下财富；刘阿宝则控制着“福利来集团”。他们为电诈集团提供洗钱通道和后勤保障。在强大的反诈压力和国际协作下，这些看似坚不可摧的商业帝国在短短数月内全面崩塌。</p>
+        <p>（此处省略三千字详细案件剖析，读者可向客服获取完整版PDF）</p>
+    </section>
+</div>
+
+<div class="chat-widget">
+    <div class="chat-header">在线实时咨询</div>
+    <div id="chat-logs">
+        <div class="msg admin">您好，关于缅北专题内容有任何疑问或爆料，请在此联系。</div>
+    </div>
+    <div class="input-panel">
+        <input type="text" id="username" placeholder="您的称呼">
+        <textarea id="msg-input" rows="2" placeholder="输入内容..."></textarea>
+        <button onclick="send()">发送消息</button>
+    </div>
+</div>
+
+<script>
+    const socket = io();
+    const chatLogs = document.getElementById('chat-logs');
+
+    socket.on('server_to_client', (data) => {
+        addMsg(data.msg, 'admin');
+    });
+
+    function send() {
+        const u = document.getElementById('username').value || '访客';
+        const m = document.getElementById('msg-input').value;
+        if(!m) return;
+        socket.emit('client_msg', { name: u, msg: m });
+        addMsg(m, 'user');
+        document.getElementById('msg-input').value = '';
+    }
+
+    function addMsg(t, c) {
+        const d = document.createElement('div');
+        d.className = 'msg ' + c;
+        d.innerText = t;
+        chatLogs.appendChild(d);
+        chatLogs.scrollTop = chatLogs.scrollHeight;
+    }
+</script>
+
+</body>
+</html>
