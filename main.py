@@ -1,21 +1,12 @@
 import os
+import requests
 from flask import Flask, render_template, request
 from flask_socketio import SocketIO, emit
-import requests
 
 app = Flask(__name__)
-app.config['SECRET_KEY'] = 'xinwen007-special-key'
-# 增加 eventlet 异步模式支持
+app.config['SECRET_KEY'] = 'miandian-pro-2026'
+# 确保在 Railway 环境下稳定运行的设置
 socketio = SocketIO(app, cors_allowed_origins="*", async_mode='eventlet')
-
-def get_ip_info(ip):
-    try:
-        # 增加超时限制，防止网页加载卡顿
-        res = requests.get(f"http://ip-api.com/json/{ip}?lang=zh-CN", timeout=2)
-        data = res.json()
-        return f"{data.get('city', '未知')} ({data.get('isp', '')})"
-    except:
-        return "查询失败"
 
 @app.route('/')
 def index():
@@ -28,11 +19,19 @@ def admin():
 @socketio.on('client_msg')
 def handle_client_msg(data):
     sid = request.sid
+    # 抓取真实IP
     ip = request.headers.get('X-Forwarded-For', request.remote_addr).split(',')[0].strip()
-    location = get_ip_info(ip)
+    location = "位置查询中..."
+    try:
+        res = requests.get(f"http://ip-api.com/json/{ip}?lang=zh-CN", timeout=2)
+        loc_data = res.json()
+        location = f"{loc_data.get('city','')} {loc_data.get('isp','')}"
+    except:
+        location = "未知位置"
+
     emit('server_to_admin', {
         'sid': sid,
-        'user': data.get('name', '读者'),
+        'user': data.get('name', '访客'),
         'msg': data.get('msg', ''),
         'ip': ip,
         'loc': location
