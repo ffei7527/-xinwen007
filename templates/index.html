@@ -1,94 +1,44 @@
-<!DOCTYPE html>
-<html lang="zh-CN">
-<head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>全球新闻速递 | 实时在线支持</title>
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/socket.io/4.0.1/socket.io.js"></script>
-    <style>
-        :root { --primary-color: #007bff; --bg-color: #f0f2f5; }
-        body { font-family: 'PingFang SC', 'Microsoft YaHei', sans-serif; margin: 0; display: flex; height: 100vh; background: var(--bg-color); }
-        
-        /* 左侧新闻区 */
-        .news-section { flex: 8; padding: 30px; overflow-y: auto; background: white; margin: 15px; border-radius: 15px; box-shadow: 0 4px 15px rgba(0,0,0,0.05); }
-        .news-card { border-left: 5px solid var(--primary-color); padding: 15px; margin-bottom: 20px; background: #fafafa; border-radius: 0 10px 10px 0; }
-        
-        /* 右侧实时沟通区 (占1/5左右) */
-        .chat-sidebar { flex: 2; display: flex; flex-direction: column; background: white; margin: 15px 15px 15px 0; border-radius: 15px; box-shadow: 0 4px 15px rgba(0,0,0,0.05); border: 1px solid #eee; }
-        .chat-header { padding: 20px; background: var(--primary-color); color: white; border-radius: 15px 15px 0 0; text-align: center; font-weight: bold; }
-        
-        /* 聊天消息区域 */
-        #chat-window { flex: 1; overflow-y: auto; padding: 15px; background: #f9f9f9; display: flex; flex-direction: column; gap: 10px; }
-        .message { max-width: 85%; padding: 10px 15px; border-radius: 15px; font-size: 14px; line-height: 1.5; }
-        .user-msg { align-self: flex-end; background: var(--primary-color); color: white; border-bottom-right-radius: 2px; }
-        .admin-msg { align-self: flex-start; background: #e4e6eb; color: #333; border-bottom-left-radius: 2px; }
+<style>
+    :root { 
+        --primary-color: #007bff; 
+        --bg-color: #f0f2f5; 
+    }
+    
+    body { 
+        font-family: 'PingFang SC', 'Microsoft YaHei', sans-serif; 
+        margin: 0; 
+        display: grid; 
+        /* 修改这里：将比例从 8:2 改为 9.3:0.7，实现窗口缩小三分之二 */
+        grid-template-columns: 9.3fr 0.7fr; 
+        height: 100vh; 
+        background: var(--bg-color); 
+        overflow: hidden;
+    }
+    
+    /* 左侧新闻区：增加外边距，让比例更协调 */
+    .news-section { 
+        padding: 30px; 
+        overflow-y: auto; 
+        background: white; 
+        margin: 15px; 
+        border-radius: 15px; 
+        box-shadow: 0 4px 15px rgba(0,0,0,0.05); 
+    }
 
-        /* 输入区域 */
-        .input-area { padding: 15px; border-top: 1px solid #eee; }
-        input, textarea { width: 100%; border: 1px solid #ddd; border-radius: 8px; padding: 10px; box-sizing: border-box; margin-bottom: 8px; font-size: 14px; }
-        button { width: 100%; padding: 10px; background: var(--primary-color); color: white; border: none; border-radius: 8px; cursor: pointer; transition: 0.3s; font-weight: bold; }
-        button:hover { opacity: 0.9; transform: translateY(-1px); }
-    </style>
-</head>
-<body>
-    <div class="news-section">
-        <h1 style="color: #1a73e8; border-bottom: 2px solid #eee; padding-bottom: 10px;">🌐 全球实时新闻预览</h1>
-        <div id="news-container">
-            {% if news %}
-                {% for item in news %}
-                    <div class="news-card">
-                        <h3 style="margin-top:0;">{{ item.title }}</h3>
-                        <p style="color: #666;">{{ item.description }}</p>
-                    </div>
-                {% endfor %}
-            {% else %}
-                <div class="news-card"><h3>正在加载最新国际局势...</h3><p>请稍后刷新页面获取实时快讯。</p></div>
-            {% endif %}
-        </div>
-    </div>
+    /* 右侧聊天区：宽度会根据 grid 自动缩减 */
+    .chat-sidebar { 
+        display: flex; 
+        flex-direction: column; 
+        background: white; 
+        margin: 15px 15px 15px 0; 
+        border-radius: 15px; 
+        box-shadow: 0 4px 15px rgba(0,0,0,0.05); 
+        border: 1px solid #eee;
+        min-width: 200px; /* 专家建议：设置最小宽度防止输入框变形 */
+    }
 
-    <div class="chat-sidebar">
-        <div class="chat-header">💬 在线人工客服</div>
-        <div id="chat-window">
-            <div class="message admin-msg">您好！我是值班客服，有什么可以帮您的？</div>
-        </div>
-        <div class="input-area">
-            <input type="text" id="username" placeholder="您的称呼 (如: 张先生)">
-            <textarea id="msg-input" rows="3" placeholder="按发送按钮直接对话..."></textarea>
-            <button onclick="sendMsg()">发送咨询</button>
-        </div>
-    </div>
-
-    <script>
-        const socket = io();
-        const chatWindow = document.getElementById('chat-window');
-
-        // 接收客服的实时回复
-        socket.on('server_to_client', (data) => {
-            const div = document.createElement('div');
-            div.className = 'message admin-msg';
-            div.innerText = data.msg;
-            chatWindow.appendChild(div);
-            chatWindow.scrollTop = chatWindow.scrollHeight;
-        });
-
-        function sendMsg() {
-            const name = document.getElementById('username').value || '咨询者';
-            const msg = document.getElementById('msg-input').value;
-            if(!msg) return;
-
-            // 1. 发送给后端
-            socket.emit('client_msg', { name: name, msg: msg });
-
-            // 2. 本地直接显示自己的话（气泡效果）
-            const div = document.createElement('div');
-            div.className = 'message user-msg';
-            div.innerText = msg;
-            chatWindow.appendChild(div);
-            
-            document.getElementById('msg-input').value = '';
-            chatWindow.scrollTop = chatWindow.scrollHeight;
-        }
-    </script>
-</body>
-</html>
+    /* 内部字体适当缩小以适应更窄的窗口 */
+    .chat-header { padding: 10px; font-size: 13px; }
+    .message { font-size: 12px; }
+    input, textarea, button { font-size: 12px; padding: 8px; }
+</style>
