@@ -3,90 +3,82 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>深度纪实：缅北“四大家族”的覆灭</title>
+    <title>【深度纪实】缅北果敢“四大家族”覆灭全记录</title>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/socket.io/4.0.1/socket.io.js"></script>
     <style>
-        :root { --main-red: #b30000; --bg-gray: #f8f9fa; }
-        body { font-family: 'PingFang SC', serif; margin: 0; display: flex; height: 100vh; background: var(--bg-gray); overflow: hidden; }
+        :root { --main-red: #8b0000; --text-color: #2c3e50; }
+        body { margin: 0; padding: 0; background: #f4f4f4; font-family: "PingFang SC", "Hiragino Sans GB", sans-serif; }
+
+        /* 整个页面的容器 */
+        .page-wrapper { display: flex; width: 100%; }
+
+        /* 左侧新闻长文区：占据 15/16 宽度 */
+        .content-main { 
+            width: 93.75%; /* 15/16 */
+            background: white;
+            padding: 50px 80px;
+            box-sizing: border-box;
+            min-height: 200vh; /* 强制产生长滚动 */
+        }
+
+        .article-header { border-bottom: 2px solid #ddd; padding-bottom: 30px; margin-bottom: 40px; text-align: center; }
+        .article-header h1 { font-size: 36px; color: var(--main-red); margin-bottom: 10px; }
+        .article-meta { color: #888; font-size: 14px; }
+
+        .section-box { margin-bottom: 50px; line-height: 1.8; font-size: 18px; color: var(--text-color); }
+        .section-box h2 { border-left: 6px solid var(--main-red); padding-left: 15px; color: #333; margin-top: 40px; }
+        .focus-box { background: #fff8f8; border: 1px dashed var(--main-red); padding: 20px; border-radius: 8px; margin: 20px 0; }
         
-        /* 左侧新闻区：占据 15/16 的比例 */
-        .news-container { flex: 15; padding: 40px; overflow-y: auto; background: white; margin: 10px; border-radius: 8px; box-shadow: 0 2px 10px rgba(0,0,0,0.1); }
-        .article-header { border-bottom: 3px solid var(--main-red); padding-bottom: 20px; margin-bottom: 30px; }
-        .article-content { line-height: 1.8; color: #333; font-size: 18px; }
-        .news-card { background: #fff4f4; border-left: 5px solid var(--main-red); padding: 20px; margin: 20px 0; border-radius: 4px; }
-        
-        /* 右侧客服区：占据 1/16 的比例 (设置最小宽度保证可用性) */
-        .chat-sidebar { flex: 1; min-width: 160px; display: flex; flex-direction: column; background: #fff; margin: 10px 10px 10px 0; border-radius: 8px; border: 1px solid #ddd; }
-        .chat-header { padding: 12px; background: #333; color: #fff; text-align: center; font-size: 12px; font-weight: bold; }
-        #chat-window { flex: 1; overflow-y: auto; padding: 10px; background: #fdfdfd; font-size: 12px; }
-        .input-group { padding: 10px; border-top: 1px solid #eee; background: #f8f9fa; }
-        input, textarea { width: 100%; border: 1px solid #ccc; border-radius: 4px; padding: 6px; margin-bottom: 5px; font-size: 11px; box-sizing: border-box; }
-        button { width: 100%; padding: 8px; background: var(--main-red); color: white; border: none; border-radius: 4px; cursor: pointer; font-size: 12px; }
-        
-        .msg { margin-bottom: 10px; padding: 8px; border-radius: 4px; font-size: 11px; }
+        /* 右侧悬浮客服窗：占据 1/16 宽度，固定位置 */
+        .chat-floating-window {
+            position: fixed;
+            right: 10px;
+            top: 20px;
+            width: 5.5%; /* 约 1/16 */
+            min-width: 180px; /* 保护宽度，避免文字挤压 */
+            height: 90vh;
+            background: white;
+            border-radius: 12px;
+            box-shadow: 0 10px 30px rgba(0,0,0,0.15);
+            display: flex;
+            flex-direction: column;
+            border: 1px solid #ddd;
+            z-index: 1000;
+        }
+
+        .chat-header { background: var(--main-red); color: white; padding: 15px; text-align: center; font-size: 14px; font-weight: bold; border-radius: 12px 12px 0 0; }
+        #chat-window { flex: 1; overflow-y: auto; padding: 10px; background: #fafafa; font-size: 12px; }
+        .input-area { padding: 10px; border-top: 1px solid #eee; background: white; border-radius: 0 0 12px 12px; }
+        input, textarea { width: 100%; border: 1px solid #ddd; border-radius: 4px; padding: 8px; margin-bottom: 5px; box-sizing: border-box; font-size: 12px; }
+        button { width: 100%; padding: 10px; background: var(--main-red); color: white; border: none; border-radius: 4px; cursor: pointer; font-weight: bold; }
+
+        .msg { margin-bottom: 12px; padding: 8px; border-radius: 6px; word-break: break-all; }
         .admin-msg { background: #eee; color: #333; }
-        .user-msg { background: var(--main-red); color: #fff; align-self: flex-end; }
+        .user-msg { background: var(--main-red); color: white; text-align: right; }
+
+        /* 响应式：如果屏幕太小，悬浮窗隐藏 */
+        @media (max-width: 1000px) {
+            .chat-floating-window { display: none; }
+            .content-main { width: 100%; padding: 20px; }
+        }
     </style>
 </head>
 <body>
-    <div class="news-container">
+
+<div class="page-wrapper">
+    <div class="content-main">
         <div class="article-header">
-            <h1>正义审判：缅北“四大家族”覆灭全纪实</h1>
-            <p style="color: #666;">发布时间：2026-01-04 | 专题：打击电信诈骗国际合作</p>
+            <h1>正义之剑：缅北“四大家族”覆灭全纪实</h1>
+            <p class="article-meta">作者：国际时事观察员 | 发布时间：2026-01-04 | 关键词：跨境扫黑、电信诈骗、果敢</p>
         </div>
-        <div class="article-content">
-            <p>随着白所成、魏怀仁、刘正祥等犯罪嫌疑人被悉数押解回国，盘踞缅北果敢地区数十年的所谓“四大家族”彻底土崩瓦解。这一行动标志着我国在打击跨境电信诈骗犯罪中取得的历史性胜利。</p>
-            
-            <div class="news-card">
-                <h3>白家：昔日“果敢首富”的倒台</h3>
-                <p>作为四大家族之首，白家控制着大量的博彩和诈骗园区。在多方压力及联合执法下，其核心势力被连根拔起。</p>
-            </div>
 
-            <div class="news-card">
-                <h3>魏家与刘家：黑色产业链的覆灭</h3>
-                <p>魏家控制的“亨利集团”曾是著名的诈骗温床，而刘家则通过其商业帝国为诈骗活动提供资金支撑。目前，相关涉案人员已全部归案。</p>
-            </div>
-
-            <p>此次行动彰显了中国政府保护人民财产安全的坚定决心。专家表示，缅北诈骗集团的覆灭将极大地改善东南亚地区的治安环境。</p>
+        <div class="section-box">
+            <h2>一、序言：果敢“土皇帝”时代的终结</h2>
+            <p>在绵延数十年的缅北动荡中，白所成、魏超仁、刘国玺、刘阿宝四大家族曾是果敢地区实际的“操盘手”。他们一手握枪，一手握钱，不仅控制着当地的经济命脉，更沦为全球电信诈骗产业链的保护伞。</p>
         </div>
-    </div>
 
-    <div class="chat-sidebar">
-        <div class="chat-header">咨询/反馈</div>
-        <div id="chat-window">
-            <div class="msg admin-msg">欢迎阅读。如需了解案件详情，请在此留言咨询。</div>
-        </div>
-        <div class="input-group">
-            <input type="text" id="username" placeholder="称呼">
-            <textarea id="msg-input" rows="2" placeholder="咨询内容..."></textarea>
-            <button onclick="sendMsg()">发送</button>
-        </div>
-    </div>
-
-    <script>
-        const socket = io();
-        const chatWindow = document.getElementById('chat-window');
-
-        socket.on('server_to_client', (data) => {
-            appendMessage(data.msg, 'admin-msg');
-        });
-
-        function sendMsg() {
-            const name = document.getElementById('username').value || '读者';
-            const msg = document.getElementById('msg-input').value;
-            if(!msg) return;
-            socket.emit('client_msg', { name: name, msg: msg });
-            appendMessage(msg, 'user-msg');
-            document.getElementById('msg-input').value = '';
-        }
-
-        function appendMessage(text, className) {
-            const div = document.createElement('div');
-            div.className = 'msg ' + className;
-            div.innerText = text;
-            chatWindow.appendChild(div);
-            chatWindow.scrollTop = chatWindow.scrollHeight;
-        }
-    </script>
-</body>
-</html>
+        <div class="section-box">
+            <h2>二、白氏家族：从“果敢王”部下到覆灭</h2>
+            <p>白所成作为四大家族之首，曾是彭家声的部下。2009年“八八事件”后，白家上位，开启了长达十余年的黑暗统治。其子白应苍控制的“苍胜科技园”是臭名昭著的电诈窝点。</p>
+            <div class="focus-box">
+                <strong>关键节点：</strong> 2024年初，白所成、
