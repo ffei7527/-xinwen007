@@ -3,24 +3,144 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>在线客服系统</title>
+    <title>近期国际新闻 & 联系客服</title>
     <style>
-        body { font-family: sans-serif; background-color: #f4f7f6; display: flex; justify-content: center; align-items: center; height: 100vh; margin: 0; }
-        .chat-container { width: 350px; background: white; padding: 20px; border-radius: 15px; box-shadow: 0 10px 25px rgba(0,0,0,0.1); }
-        h2 { color: #333; text-align: center; }
-        input, textarea { width: 100%; padding: 10px; margin: 10px 0; border: 1px solid #ddd; border-radius: 5px; box-sizing: border-box; }
-        button { width: 100%; padding: 10px; background-color: #007bff; color: white; border: none; border-radius: 5px; cursor: pointer; font-size: 16px; }
-        button:hover { background-color: #0056b3; }
-        #status { text-align: center; margin-top: 10px; font-size: 14px; color: green; }
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            margin: 0;
+            padding: 0;
+            background-color: #f0f2f5;
+            display: grid;
+            grid-template-columns: 8fr 2fr; /* 主内容区占 8 份，客服区占 2 份，总共 10 份，即 8/10 和 2/10 = 1/5, 近似 1/8 */
+            min-height: 100vh;
+            gap: 20px; /* 两栏之间的间距 */
+        }
+        .main-content {
+            background-color: #ffffff;
+            padding: 20px;
+            box-shadow: 0 4px 12px rgba(0,0,0,0.05);
+            border-radius: 10px;
+            margin-left: 20px; /* 左侧留边 */
+            margin-top: 20px;
+            margin-bottom: 20px;
+            overflow-y: auto; /* 内容过多时可滚动 */
+        }
+        .sidebar {
+            background-color: #ffffff;
+            padding: 20px;
+            box-shadow: 0 4px 12px rgba(0,0,0,0.05);
+            border-radius: 10px;
+            margin-right: 20px; /* 右侧留边 */
+            margin-top: 20px;
+            margin-bottom: 20px;
+        }
+
+        /* 新闻样式 */
+        .news-item {
+            border-bottom: 1px solid #eee;
+            padding-bottom: 15px;
+            margin-bottom: 15px;
+        }
+        .news-item:last-child {
+            border-bottom: none;
+        }
+        .news-item h3 {
+            color: #333;
+            margin-top: 0;
+            margin-bottom: 5px;
+            font-size: 1.2em;
+        }
+        .news-item p {
+            color: #666;
+            line-height: 1.6;
+            font-size: 0.9em;
+        }
+        .news-item a {
+            color: #007bff;
+            text-decoration: none;
+        }
+        .news-item a:hover {
+            text-decoration: underline;
+        }
+
+        /* 客服模块样式 */
+        .chat-container {
+            /* 移除之前绝对定位的样式，改为融入布局 */
+            padding: 0; /* sidebar 已经有 padding */
+            box-shadow: none; /* sidebar 已经有 box-shadow */
+            border-radius: 0; /* sidebar 已经有 border-radius */
+            height: 100%; /* 填充整个 sidebar */
+            display: flex;
+            flex-direction: column;
+        }
+        h4 { color: #333; text-align: center; margin-bottom: 15px; font-size: 1.1em; }
+        input, textarea {
+            width: calc(100% - 20px); /* 减去 padding */
+            padding: 10px;
+            margin-bottom: 10px;
+            border: 1px solid #ddd;
+            border-radius: 5px;
+            box-sizing: border-box;
+            flex-shrink: 0; /* 不会被挤压 */
+        }
+        textarea {
+            flex-grow: 1; /* 占据剩余空间 */
+            resize: vertical; /* 允许垂直调整大小 */
+            min-height: 80px; /* 最小高度 */
+        }
+        button {
+            width: 100%;
+            padding: 10px;
+            background-color: #28a745; /* 绿色按钮更符合“联系”主题 */
+            color: white;
+            border: none;
+            border-radius: 5px;
+            cursor: pointer;
+            font-size: 16px;
+            margin-top: auto; /* 按钮始终在底部 */
+            flex-shrink: 0;
+        }
+        button:hover { background-color: #218838; }
+        #status { text-align: center; margin-top: 10px; font-size: 13px; color: #28a745; }
+
+        /* 响应式调整：小屏幕下堆叠 */
+        @media (max-width: 768px) {
+            body {
+                grid-template-columns: 1fr; /* 单列布局 */
+                gap: 0;
+            }
+            .main-content, .sidebar {
+                margin: 10px;
+            }
+            .sidebar {
+                margin-top: 0; /* 紧贴新闻内容 */
+            }
+        }
     </style>
 </head>
 <body>
-    <div class="chat-container">
-        <h2>联系客服</h2>
-        <input type="text" id="name" placeholder="您的称呼">
-        <textarea id="message" rows="4" placeholder="请输入您想咨询的内容..."></textarea>
-        <button onclick="sendMessage()">提交留言</button>
-        <div id="status"></div>
+    <div class="main-content">
+        <h1>近期国际新闻</h1>
+        {% if news %}
+            {% for article in news %}
+                <div class="news-item">
+                    <h3><a href="{{ article.url }}" target="_blank">{{ article.title }}</a></h3>
+                    <p>{{ article.description }}</p>
+                </div>
+            {% endfor %}
+        {% else %}
+            <p>未能获取到近期国际新闻。</p>
+        {% endif %}
+    </div>
+
+    <div class="sidebar">
+        <div class="chat-container">
+            <h4>有疑问？联系我们</h4>
+            <input type="text" id="name" placeholder="您的称呼">
+            <textarea id="message" rows="4" placeholder="请输入您想咨询的内容..."></textarea>
+            <button onclick="sendMessage()">提交留言</button>
+            <div id="status"></div>
+        </div>
     </div>
 
     <script>
@@ -29,9 +149,15 @@
             const message = document.getElementById('message').value;
             const status = document.getElementById('status');
 
-            if (!name || !message) { status.innerText = "请填写完整信息"; return; }
+            if (!name || !message) {
+                status.innerText = "请填写完整信息！";
+                status.style.color = "red";
+                return;
+            }
 
             status.innerText = "正在发送...";
+            status.style.color = "gray";
+
             try {
                 const response = await fetch('/send_message', {
                     method: 'POST',
@@ -40,10 +166,13 @@
                 });
                 const data = await response.json();
                 status.innerText = data.message;
+                status.style.color = "green";
                 document.getElementById('name').value = '';
                 document.getElementById('message').value = '';
             } catch (error) {
-                status.innerText = "发送失败，请重试";
+                console.error("发送失败:", error);
+                status.innerText = "发送失败，请重试！";
+                status.style.color = "red";
             }
         }
     </script>
