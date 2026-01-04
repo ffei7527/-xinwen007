@@ -1,38 +1,133 @@
 <!DOCTYPE html>
-<html>
+<html lang="zh-CN">
 <head>
-    <title>客服管理后台</title>
+    <meta charset="UTF-8">
+    <title>专业客服工作台 - 管理员</title>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/socket.io/4.0.1/socket.io.js"></script>
     <style>
-        body { font-family: sans-serif; padding: 20px; background: #2c3e50; color: white; }
-        #chat { height: 400px; overflow-y: auto; background: #ecf0f1; color: #333; padding: 10px; border-radius: 5px; }
-        .msg { margin-bottom: 10px; border-bottom: 1px solid #ddd; padding-bottom: 5px; }
-        .ip-info { font-size: 12px; color: #7f8c8d; }
-        input { width: 80%; padding: 10px; }
+        body { margin: 0; display: flex; height: 100vh; font-family: 'Segoe UI', sans-serif; background: #f4f7f9; }
+        
+        /* 左侧：客户列表 */
+        .user-list { width: 260px; background: white; border-right: 1px solid #ddd; display: flex; flex-direction: column; }
+        .list-header { padding: 20px; font-weight: bold; border-bottom: 1px solid #eee; background: #2c3e50; color: white; }
+        .user-item { padding: 15px; border-bottom: 1px solid #f9f9f9; cursor: pointer; transition: 0.2s; }
+        .user-item:hover { background: #eef6ff; }
+        .user-item.active { background: #e1f0ff; border-left: 4px solid #007bff; }
+        .user-item .name { font-weight: bold; display: block; }
+        .user-item .info { font-size: 11px; color: #999; }
+
+        /* 中间：聊天主区 */
+        .chat-main { flex: 1; display: flex; flex-direction: column; background: #fff; }
+        #chat-window { flex: 1; padding: 20px; overflow-y: auto; background: #fdfdfd; }
+        .input-box { height: 150px; border-top: 1px solid #eee; padding: 15px; }
+        textarea { width: 100%; height: 80px; border: 1px solid #ddd; border-radius: 5px; padding: 10px; resize: none; }
+        .send-btn { float: right; margin-top: 10px; padding: 8px 25px; background: #007bff; color: white; border: none; border-radius: 4px; cursor: pointer; }
+
+        /* 右侧：快捷回复/工具 */
+        .tools-panel { width: 240px; background: white; border-left: 1px solid #ddd; padding: 15px; }
+        .tool-title { font-weight: bold; margin-bottom: 10px; color: #666; font-size: 13px; }
+        .quick-reply { display: block; width: 100%; padding: 8px; margin-bottom: 5px; background: #f8f9fa; border: 1px solid #eee; text-align: left; cursor: pointer; font-size: 12px; }
+        .quick-reply:hover { background: #e9ecef; }
+
+        /* 气泡样式 */
+        .msg { margin-bottom: 15px; }
+        .msg.admin { text-align: right; }
+        .msg span { display: inline-block; padding: 8px 12px; border-radius: 8px; max-width: 70%; }
+        .msg.user span { background: #e4e6eb; }
+        .msg.admin span { background: #007bff; color: white; }
     </style>
 </head>
 <body>
-    <h1>客服实时对话后台</h1>
-    <div id="chat"></div>
-    <br>
-    <input type="text" id="reply" placeholder="输入回复内容...">
-    <button onclick="sendReply()">发送回复</button>
+    <div class="user-list">
+        <div class="list-header">待接入/咨询中</div>
+        <div id="users">
+            </div>
+    </div>
+
+    <div class="chat-main">
+        <div id="chat-window">
+            <div style="text-align: center; color: #ccc; margin-top: 50px;">请从左侧选择一个客户开始交流</div>
+        </div>
+        <div class="input-box">
+            <textarea id="admin-input" placeholder="输入消息..."></textarea>
+            <button class="send-btn" onclick="sendReply()">发送回复</button>
+        </div>
+    </div>
+
+    <div class="tools-panel">
+        <div class="tool-title">快捷回复</div>
+        <button class="quick-reply" onclick="useQuick('你好，请问有什么可以帮您？')">你好，请问...</button>
+        <button class="quick-reply" onclick="useQuick('请稍等，我正在为您查询。')">请稍等...</button>
+        <button class="quick-reply" onclick="useQuick('感谢您的咨询，祝您生活愉快！')">祝您生活愉快</button>
+        <hr>
+        <div class="tool-title">自动回复设置</div>
+        <input type="checkbox" id="auto-mode" checked> 开启欢迎语
+    </div>
 
     <script>
         const socket = io();
+        let currentCustomer = null;
+        const customerData = {}; // 存储每个客户的聊天记录
+
         socket.on('server_to_admin', (data) => {
-            const chat = document.getElementById('chat');
-            chat.innerHTML += `<div class="msg">
-                <b>${data.user}:</b> ${data.msg} <br>
-                <span class="ip-info">📍 IP: ${data.ip} | 位置: ${data.loc}</span>
-            </div>`;
-            chat.scrollTop = chat.scrollHeight;
+            const sid = data.sid;
+            // 如果是新客户，创建列表项
+            if (!customerData[sid]) {
+                customerData[sid] = { name: data.user, msgs: [], info: data.loc };
+                const userList = document.getElementById('users');
+                const div = document.createElement('div');
+                div.className = 'user-item';
+                div.id = 'list-' + sid;
+                div.onclick = () => selectUser(sid);
+                div.innerHTML = `<span class="name">${data.user}</span><span class="info">${data.loc}</span>`;
+                userList.appendChild(div);
+            }
+
+            // 保存消息
+            customerData[sid].msgs.push({ type: 'user', text: data.msg });
+            
+            // 如果当前正在看这个客户，刷新聊天窗
+            if (currentCustomer === sid) {
+                renderMessages();
+            } else {
+                document.getElementById('list-' + sid).style.background = '#fffbe6'; // 消息提醒色
+            }
         });
 
+        function selectUser(sid) {
+            currentCustomer = sid;
+            // 样式切换
+            document.querySelectorAll('.user-item').forEach(el => el.classList.remove('active'));
+            document.getElementById('list-' + sid).classList.add('active');
+            document.getElementById('list-' + sid).style.background = '';
+            renderMessages();
+        }
+
+        function renderMessages() {
+            const window = document.getElementById('chat-window');
+            window.innerHTML = '';
+            customerData[currentCustomer].msgs.forEach(m => {
+                const div = document.createElement('div');
+                div.className = 'msg ' + m.type;
+                div.innerHTML = `<span>${m.text}</span>`;
+                window.appendChild(div);
+            });
+            window.scrollTop = window.scrollHeight;
+        }
+
         function sendReply() {
-            const msg = document.getElementById('reply').value;
-            socket.emit('admin_reply', {msg: msg});
-            document.getElementById('reply').value = '';
+            const input = document.getElementById('admin-input');
+            const msg = input.value;
+            if (!msg || !currentCustomer) return;
+
+            socket.emit('admin_reply', { sid: currentCustomer, msg: msg });
+            customerData[currentCustomer].msgs.push({ type: 'admin', text: msg });
+            renderMessages();
+            input.value = '';
+        }
+
+        function useQuick(text) {
+            document.getElementById('admin-input').value = text;
         }
     </script>
 </body>
